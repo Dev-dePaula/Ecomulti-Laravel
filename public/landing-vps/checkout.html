@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-AO"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finalizar compra | ECOMULTI VPS</title><meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a1747"><link rel="icon" type="image/png" href="img/favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head><body class="page-co">
+<header class="nav"><div class="wrap"><a class="brand" href="index.html"><img src="img/logo-ecomulti.png" alt="ECOMULTI" width="520" height="158"></a><a class="btn ghost sm" href="index.html#planos">← Voltar aos planos</a></div></header>
+<main class="wrap co">
+<div id="left">
+<form id="f" class="box" novalidate>
+<h2>1. Os seus dados</h2>
+<div class="row"><label>Nome completo<input name="nome" required autocomplete="name"></label><label>E-mail<input name="email" type="email" required autocomplete="email"></label></div>
+<div class="row"><label>WhatsApp<input name="tel" inputmode="tel" placeholder="9XX XXX XXX" required autocomplete="tel"></label><label>Sistema operativo<select name="so"></select></label></div>
+<label>Ciclo de pagamento<select name="ciclo" id="ciclo"></select></label>
+<h2 style="margin-top:10px">2. Pagamento</h2>
+<div class="mcx"><div class="ic">MX</div><div><b>Multicaixa Express</b><small>Pague no telemóvel, em segundos</small></div></div>
+<label>Número associado ao Multicaixa Express<input name="mcx" inputmode="tel" placeholder="9XX XXX XXX" required></label>
+<ol class="steps"><li>Clique em <b>Pagar agora</b>.</li><li>Receba o pedido de pagamento na app Multicaixa Express.</li><li>Confirme com o seu PIN e o VPS é ativado.</li></ol>
+<p class="err" id="err"></p>
+<button class="btn accent full" id="pagar" type="submit">🔒 Pagar agora</button>
+<p class="sec">Pagamento seguro · Sem fidelização · Suporte 24/7</p>
+</form>
+<div id="done" class="box ok hide"><div class="ck">✓</div><h2 style="text-align:center">Pedido registado!</h2>
+<p style="color:var(--muted)">Referência do pedido</p><code id="ref"></code>
+<p style="color:var(--muted);margin-bottom:20px" id="msg"></p><a class="btn" id="waConf" href="#">Enviar pedido no WhatsApp</a></div>
+</div>
+<aside class="box sum" style="position:sticky;top:90px"><h2>Resumo do pedido</h2>
+<div class="ln"><span>Plano</span><b id="sNome"></b></div><div class="ln"><span>Recursos</span><b id="sRec"></b></div>
+<div class="ln"><span>Ciclo</span><b id="sCiclo"></b></div><div class="ln"><span>Desconto</span><b id="sDesc"></b></div>
+<div class="ln hide" id="lIva"><span>IVA</span><b id="sIva"></b></div>
+<div class="ln tot"><span>Total</span><b id="sTot"></b></div></aside>
+</main>
+<script src="config.js"></script><script src="script.js"></script>
+<script>
+const { kz, precoPlano } = window.__vps, q = new URLSearchParams(location.search);
+let id = C.planos[q.get("plano")] ? q.get("plano") : "pro";
+let ciclo = C.ciclos[q.get("ciclo")] ? q.get("ciclo") : "mensal";
+const p = C.planos[id];
+$("#ciclo").innerHTML = Object.entries(C.ciclos).map(([k, c]) => `<option value="${k}">${c.nome}</option>`).join("");
+$("[name=so]").innerHTML = (id === "start" ? ["Ubuntu 24.04", "Debian 12", "AlmaLinux 9"] : ["Ubuntu 24.04", "Debian 12", "AlmaLinux 9", "Windows Server 2022"]).map(s => `<option>${s}</option>`).join("");
+$("#ciclo").value = ciclo;
+function calc() {
+  ciclo = $("#ciclo").value;
+  const r = precoPlano(id, ciclo), iva = r.total * C.iva, tot = r.total + iva;
+  $("#sNome").textContent = p.nome; $("#sRec").textContent = p.cpu + " · " + p.ram;
+  $("#sCiclo").textContent = C.ciclos[ciclo].nome.replace(/ \(.*\)/, "");
+  $("#sDesc").textContent = r.cheio - r.total ? "- " + kz(r.cheio - r.total) : "—";
+  $("#lIva").classList.toggle("hide", !C.iva); $("#sIva").textContent = kz(iva); $("#sTot").textContent = kz(tot);
+  return tot;
+}
+$("#ciclo").onchange = calc; calc();
+const telOk = v => /^9\d{8}$/.test(v.replace(/[\s+]/g, "").replace(/^244/, ""));
+$("#f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target)), err = $("#err"); err.textContent = "";
+  if (f.nome.trim().length < 3) return err.textContent = "Indique o seu nome completo.";
+  if (!/^\S+@\S+\.\S+$/.test(f.email)) return err.textContent = "E-mail inválido.";
+  if (!telOk(f.tel)) return err.textContent = "WhatsApp inválido (9 dígitos, ex.: 923 000 000).";
+  if (!telOk(f.mcx)) return err.textContent = "Número Multicaixa Express inválido.";
+  const tot = calc(), d = new Date();
+  const ref = "VPS-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+  const btn = $("#pagar"); btn.disabled = true; btn.textContent = "A processar…";
+  const pedido = { pedido: ref, plano: p.nome, ciclo: C.ciclos[ciclo].nome, total: tot, so: f.so, cliente: { nome: f.nome, email: f.email, tel: f.tel }, telefoneMcx: f.mcx };
+  let viaApi = false;
+  if (C.apiPagamento) {
+    try { const r = await fetch(C.apiPagamento, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pedido) }); viaApi = r.ok && (await r.json()).ok; } catch (x) {}
+    if (!viaApi) { btn.disabled = false; btn.textContent = "🔒 Pagar agora"; return err.textContent = "Não foi possível iniciar o pagamento. Tente novamente."; }
+  }
+  const txt = "Olá! Pedido " + ref + "\nPlano: " + p.nome + " (" + pedido.ciclo + ")\nSO: " + f.so + "\nTotal: " + kz(tot) + "\nNome: " + f.nome + "\nE-mail: " + f.email + "\nMulticaixa Express: " + f.mcx;
+  $("#ref").textContent = ref;
+  $("#msg").textContent = viaApi
+    ? "Enviámos o pedido de pagamento de " + kz(tot) + " para o Multicaixa Express (" + f.mcx + "). Confirme na app com o seu PIN."
+    : "Total a pagar: " + kz(tot) + " via Multicaixa Express. Envie o pedido pelo WhatsApp para recebermos a referência de pagamento e ativarmos o seu VPS.";
+  $("#waConf").href = "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent(txt);
+  $("#f").classList.add("hide"); $("#done").classList.remove("hide"); scrollTo(0, 0);
+});
+</script></body></html>
