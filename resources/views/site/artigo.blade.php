@@ -49,7 +49,6 @@
         <a class="cart-link" href="orcamento-ecomulti.html" aria-label="Ver o meu orçamento"><svg class="icon"><use href="#i-cart"/></svg><span class="cart-count"></span></a>
         <a class="btn btn-primary btn-header" href="index.html#contacto">Pedir proposta</a>
         <a class="lock-btn" href="cliente.html" title="Área do cliente" aria-label="Área do cliente"><svg class="icon"><use href="#i-people"/></svg></a>
-        <a class="lock-btn" href="admin.html" title="Área reservada" aria-label="Área reservada"><svg class="icon"><use href="#i-lock"/></svg></a>
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu"><svg class="icon"><use href="#i-menu"/></svg></button>
       </div>
     </div>
